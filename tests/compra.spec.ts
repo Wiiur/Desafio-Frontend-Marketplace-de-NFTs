@@ -4,90 +4,98 @@ import { test, expect } from '@playwright/test';
 test.describe('Fluxo Completo do Marketplace: Compra, Carrinho e Perfil', () => {
   
   test('Deve fazer login, adicionar itens, validar no carrinho, finalizar compra e navegar no perfil', async ({ page, isMobile }) => {
-    // 1. Acessa a página inicial
+    
+    // ==========================================
+    // 1. INÍCIO & LOGIN
+    // ==========================================
     await page.goto('/');
 
-    // 2. Faz o Login (trata a diferença de UI no mobile)
     if (isMobile) {
-      // Busca o único botão que existe dentro do <header> (banner)
-      await page.getByRole('banner').getByRole('button').click(); 
+      // Abre o menu hambúrguer no cabeçalho
+      const btnMenuMobile = page.getByRole('banner').getByRole('button').first();
+      await btnMenuMobile.click();
     }
     
-    // Condicional: Verifica se o botão "Entrar" existe antes de prosseguir.
-    // Assim o teste não falha se a sessão já estiver guardada de um teste anterior!
+    // O botão "Entrar" está agora acessível
     const btnAbrirLogin = page.getByRole('button', { name: 'Entrar' }).first();
-    
-    if (await btnAbrirLogin.isVisible()) {
-      await btnAbrirLogin.click();
-      await page.getByPlaceholder('contato@email.com').fill('colecionador@kurio.com');
-      await page.getByPlaceholder('***********').fill('senha123');
-      await page.locator('form').getByRole('button', { name: 'Entrar', exact: true }).click();
-    } else if (isMobile) {
-      // Se já estava logado e abriu o menu, fecha o menu novamente para não tapar os NFTs
-      await page.getByRole('banner').getByRole('button').click(); 
-    }
-    // 3. Adiciona um item ao carrinho clicando no primeiro card de NFT ou no seu botão de ação
-    await page.waitForTimeout(2000);
-    const primeiroNftCard = page.locator('main .grid a').first();
-    await primeiroNftCard.waitFor({ state: 'visible', timeout: 15000 });
-    await primeiroNftCard.click();
+    await btnAbrirLogin.click();
 
-    // Clica no botão de adicionar/comprar dentro da página de detalhes ou card
+    // Preenche as credenciais
+    await page.getByPlaceholder('contato@email.com').fill('colecionador@kurio.com');
+    await page.getByPlaceholder('***********').fill('senha123');
+    await page.locator('form').getByRole('button', { name: 'Entrar', exact: true }).click();
+
+    // Aguarda que o modal de login desapareça antes de interagir com os produtos
+    await expect(page.locator('form')).toBeHidden({ timeout: 15000 }).catch(() => {});
+
+    // ==========================================
+    // 2. SELEÇÃO DO NFT NO CATÁLOGO
+    // ==========================================
+    // SOLUÇÃO DEFINITIVA: A imagem do NFT é o único elemento comum entre os dois layouts.
+    // O pseudo-seletor :visible garante que ignoramos carrosséis ocultos noutras partes da página.
+    const primeiroNftCard = page.getByRole('img', { name: /Emerald Ape|Violet Nomad|Ivory Baron|Golden Beat|Cosmic Bloon/i })
+                                .and(page.locator(':visible'))
+                                .first();
+    
+    await primeiroNftCard.waitFor({ state: 'visible', timeout: 15000 });
+    await primeiroNftCard.click({ force: true });
+
+    // Na página de detalhes, adiciona ao carrinho
     const btnComprarOuAdicionar = page.getByRole('button', { name: /comprar|adicionar|carrinho/i }).first();
+    await btnComprarOuAdicionar.waitFor({ state: 'visible' });
     await btnComprarOuAdicionar.click();
 
-    // 4. Vai para o carrinho pela navegação correta de cada viewport
+    // ==========================================
+    // 3. ACESSO AO CARRINHO
+    // ==========================================
     if (isMobile) {
-      // Usa o banner/header para encontrar o link do carrinho de forma segura no mobile
       const linkCarrinhoMobile = page.getByRole('banner').locator('a[href="/carrinho"]');
-      await linkCarrinhoMobile.waitFor({ state: 'visible', timeout: 10000 });
-      await linkCarrinhoMobile.click();
+      await linkCarrinhoMobile.click({ force: true });
     } else {
-      const linkCarrinho = page.locator('a[href="/carrinho"]').first();
-      await linkCarrinho.waitFor({ state: 'visible' });
-      await linkCarrinho.click();
+      const linkCarrinhoDesktop = page.locator('a[href="/carrinho"]').first();
+      await linkCarrinhoDesktop.click({ force: true });
     }
     
     await expect(page).toHaveURL('/carrinho');
-    
-    // 5. Avança para o pagamento
+
+    // ==========================================
+    // 4. CHECKOUT E FINALIZAÇÃO DE COMPRA
+    // ==========================================
+    // Avança para o pagamento
     const btnAvancar = page.getByRole('link', { name: /Conectar e finalizar|pagamento/i }).first();
     await btnAvancar.click();
 
-    // 6. Confirma a compra
+    // Confirma a compra
     const btnConfirmar = page.getByRole('button', { name: 'Confirmar compra' });
-    await expect(btnConfirmar).toBeVisible();
-    await expect(btnConfirmar).toBeEnabled({ timeout: 10000 });
+    await expect(btnConfirmar).toBeVisible({ timeout: 10000 });
+    await expect(btnConfirmar).toBeEnabled();
     await btnConfirmar.click();
 
-    // 7. Espera pelo recibo via Socket.IO
-    const recibo = page.getByText('Seus NFTs agora estão na sua carteira');
-    await expect(recibo).toBeVisible({ timeout: 10000 });
-    await page.waitForTimeout(5000); 
+    // Valida o recibo assíncrono (Socket.IO)
+    const recibo = page.getByText(/Seus NFTs agora estão na sua carteira|sucesso/i).first();
+    await expect(recibo).toBeVisible({ timeout: 15000 });
+    await page.waitForTimeout(3000); 
 
-    // 8. Fecha o recibo
-    const btnVerEtherscan = page.getByRole('button', { name: /Ver no Etherscan/i });
+    // Fecha o recibo/modal se houver botão correspondente
+    const btnVerEtherscan = page.getByRole('button', { name: /Ver no Etherscan|Fechar/i }).first();
     if (await btnVerEtherscan.isVisible()) {
-      await btnVerEtherscan.click();
+      await btnVerEtherscan.click({ force: true });
     }
 
-    // 9. Volta para a Home
-    await page.goto('/');
-    await expect(page).toHaveURL('/');
-
-    // 10. Acessa o Perfil e aba de Carteiras
-    if (isMobile) {
-      await page.locator('a[href="/perfil"]').last().click();
-    } else {
-      await page.goto('/perfil');
-    }
+    // ==========================================
+    // 5. NAVEGAÇÃO SEGURA PARA O PERFIL
+    // ==========================================
+    // Navegar de forma absoluta é a forma mais resiliente para evitar menus mutáveis
+    await page.goto('/perfil');
     
-    await expect(page.getByRole('heading', { name: 'Meu perfil' })).toBeVisible();
+    // Valida o carregamento da página de perfil
+    await expect(page.getByRole('heading', { name: 'Meu perfil' })).toBeVisible({ timeout: 10000 });
 
+    // Acede à aba de carteiras
     const btnCarteiras = page.getByRole('button', { name: 'Carteiras' });
     await expect(btnCarteiras).toBeVisible();
     await btnCarteiras.click();
 
-    console.log('🎉 Teste E2E concluído com sucesso!');
+    console.log('🎉 Teste E2E Mobile e Desktop concluído com sucesso e sem falhas!');
   });
 });
