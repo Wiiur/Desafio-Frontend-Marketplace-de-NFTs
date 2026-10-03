@@ -1,10 +1,11 @@
 // src/pages/PaymentPage.tsx
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from '@tanstack/react-router';
 import { ChevronDown, ChevronLeft, MoreVertical } from 'lucide-react';
 import { useCart } from '../context/CartContext';
-// REMOVIDO o import do Navigate, já não precisamos dele!
 import { useAuth } from '../context/AuthContext';
+import { socket } from '../services/socket';
+import { api } from '../services/api';
 
 interface FormGroupProps {
   label: string;
@@ -31,53 +32,83 @@ const FormGroup = ({ label, required = true, type = "text", placeholder = "", de
 export function PaymentPage() {
   const { items, clearCart } = useCart();
   
-  // Estados partilhados
   const [selectedWallet, setSelectedWallet] = useState('coinbase');
   const [showSuccessModal, setShowSuccessModal] = useState(false);
-  
-  // Estado específico para a versão Mobile (Seleção da Carteira Conectada)
   const [selectedConnected, setSelectedConnected] = useState('reserva');
 
-  // Cálculos simulados
   const subtotal = items.reduce((acc, item) => acc + Number(item.price), 0);
   const networkFee = 0.016;
   const total = subtotal > 0 ? subtotal + networkFee : 0;
 
-  // 1. Puxamos o isAuthenticated e a função de abrir o pop-up
   const { isAuthenticated, openLoginModal } = useAuth();
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [pendingCheckout, setPendingCheckout] = useState(false);
 
-  // 2. Se NÃO estiver logado, mostramos um aviso com o botão do Pop-up
-  if (!isAuthenticated) {
-    return (
-      <div className="min-h-[60vh] flex flex-col items-center justify-center gap-6 font-mono px-4">
-        <h2 className="text-xl font-bold text-foreground">Acesso Restrito</h2>
-        <p className="text-muted text-center text-sm max-w-md">
-          Tem de iniciar sessão na sua conta Kurio para aceder ao checkout e finalizar a sua compra.
-        </p>
-        <button 
-          onClick={openLoginModal} 
-          className="bg-[#D28A4C] text-[#140D0A] px-8 py-3 rounded-lg font-bold hover:bg-[#D28A4C]/80 transition-colors"
-        >
-          Fazer Login / Criar Conta
-        </button>
-      </div>
-    );
-  }
+  // 1. Escuta a confirmação da Blockchain via Socket
+  useEffect(() => {
+    socket.on('order.updated', (data) => {
+      console.log('Socket recebido:', data);
+      if (data.status === 'confirmed') {
+        setIsProcessing(false);
+        setShowSuccessModal(true);
+      }
+    });
+
+    return () => {
+      socket.off('order.updated');
+    };
+  }, []);
+
+  // 2. Chama a API de Checkout
+  const executeCheckout = async () => {
+    console.log('A executar checkout na API...');
+    setIsProcessing(true);
+    try {
+      await api.post('/checkout', { items, total });
+    } catch (error) {
+      console.error('Erro na compra:', error);
+      setIsProcessing(false);
+    }
+  };
+
+  // 3. Se acabou de fazer login e tinha compra pendente, avança!
+  useEffect(() => {
+    if (isAuthenticated && pendingCheckout) {
+      console.log('Login feito com sucesso! A retomar compra pendente...');
+      
+      setTimeout(() => {
+        setPendingCheckout(false);
+        executeCheckout();
+      }, 0);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthenticated, pendingCheckout]);
+
+  // 4. Lógica do clique no botão
+  const handleCheckout = () => {
+    console.log('Botão clicado. Está logado?', isAuthenticated);
+    
+    if (!isAuthenticated) {
+      console.log('Não está logado. A abrir o Pop-up de Login...');
+      setPendingCheckout(true);
+      openLoginModal();
+      return; 
+    }
+    
+    console.log('Já está logado. A avançar para o pagamento...');
+    executeCheckout();
+  };
 
   return (
     <div className="w-full font-mono bg-[#140D0A]">
       
       {/* ========================================= */}
-      {/* VERSÃO MOBILE (Idêntica à Imagem de Referência) */}
+      {/* VERSÃO MOBILE                               */}
       {/* ========================================= */}
       <div className="md:hidden flex flex-col px-6 pt-10 pb-8 min-h-[calc(100vh-80px)]">
         
-        {/* Cabeçalho Mobile */}
         <div className="flex items-center mb-10 relative">
-          <button 
-            onClick={() => window.history.back()} 
-            className="w-[34px] h-[34px] rounded-full bg-[#1a110c] flex items-center justify-center text-[#D28A4C] hover:opacity-80 transition-opacity"
-          >
+          <button onClick={() => window.history.back()} className="w-[34px] h-[34px] rounded-full bg-[#1a110c] flex items-center justify-center text-[#D28A4C] hover:opacity-80 transition-opacity">
             <ChevronLeft className="h-5 w-5 -ml-0.5" />
           </button>
           <h1 className="text-[16px] font-bold text-foreground absolute left-1/2 -translate-x-1/2 tracking-wide whitespace-nowrap">
@@ -85,20 +116,13 @@ export function PaymentPage() {
           </h1>
         </div>
 
-        {/* Secção 1: Carteira Conectada */}
         <div className="flex justify-between items-center mb-4 px-1">
           <h2 className="text-[13px] font-bold text-foreground tracking-wide">Carteira conectada</h2>
-          <button className="text-[11px] font-bold text-[#D28A4C] tracking-wide hover:opacity-80 transition-opacity">
-            Trocar carteira
-          </button>
+          <button className="text-[11px] font-bold text-[#D28A4C] tracking-wide hover:opacity-80 transition-opacity">Trocar carteira</button>
         </div>
 
         <div className="flex flex-col gap-3.5 mb-10">
-          {/* Cartão: Reserva */}
-          <div 
-            onClick={() => setSelectedConnected('reserva')} 
-            className="bg-[#1a110c] p-4 rounded-xl flex items-start gap-4 cursor-pointer border border-transparent transition-colors"
-          >
+          <div onClick={() => setSelectedConnected('reserva')} className="bg-[#1a110c] p-4 rounded-xl flex items-start gap-4 cursor-pointer border border-transparent transition-colors">
             <div className={`mt-0.5 w-[14px] h-[14px] rounded-full border-2 flex items-center justify-center shrink-0 ${selectedConnected === 'reserva' ? 'border-[#D28A4C]' : 'border-[#38220F]'}`}>
               {selectedConnected === 'reserva' && <div className="w-1.5 h-1.5 rounded-full bg-[#D28A4C]"></div>}
             </div>
@@ -107,16 +131,10 @@ export function PaymentPage() {
               <span className="text-[11px] text-[#8a7a6c] tracking-wide">nova.kurio.eth</span>
               <span className="text-[11px] text-[#8a7a6c] tracking-wide">Rede Polygon</span>
             </div>
-            <button className="text-[#8a7a6c] hover:text-foreground p-1">
-              <MoreVertical className="h-4 w-4" />
-            </button>
+            <button className="text-[#8a7a6c] hover:text-foreground p-1"><MoreVertical className="h-4 w-4" /></button>
           </div>
 
-          {/* Cartão: Principal */}
-          <div 
-            onClick={() => setSelectedConnected('principal')} 
-            className="bg-[#1a110c] p-4 rounded-xl flex items-start gap-4 cursor-pointer border border-transparent transition-colors"
-          >
+          <div onClick={() => setSelectedConnected('principal')} className="bg-[#1a110c] p-4 rounded-xl flex items-start gap-4 cursor-pointer border border-transparent transition-colors">
             <div className={`mt-0.5 w-[14px] h-[14px] rounded-full border-2 flex items-center justify-center shrink-0 ${selectedConnected === 'principal' ? 'border-[#D28A4C]' : 'border-[#38220F]'}`}>
               {selectedConnected === 'principal' && <div className="w-1.5 h-1.5 rounded-full bg-[#D28A4C]"></div>}
             </div>
@@ -125,49 +143,30 @@ export function PaymentPage() {
               <span className="text-[11px] text-[#8a7a6c] tracking-wide">0xA91F…E82C</span>
               <span className="text-[11px] text-[#8a7a6c] tracking-wide">Rede principal Ethereum</span>
             </div>
-            <button className="text-[#8a7a6c] hover:text-foreground p-1">
-              <MoreVertical className="h-4 w-4" />
-            </button>
+            <button className="text-[#8a7a6c] hover:text-foreground p-1"><MoreVertical className="h-4 w-4" /></button>
           </div>
         </div>
 
-        {/* Secção 2: Carteira e Rede */}
         <h2 className="text-[13px] font-bold text-foreground tracking-wide mb-4 px-1">Carteira e rede</h2>
         
         <div className="flex flex-col gap-3.5 mb-10">
-          {/* WalletConnect */}
-          <div 
-            onClick={() => setSelectedWallet('walletconnect')} 
-            className="bg-[#1a110c] p-4 rounded-xl flex items-center gap-4 cursor-pointer transition-colors"
-          >
-            <div className="w-8 h-8 rounded-full bg-[#241612] flex items-center justify-center text-[#D28A4C] font-bold text-[11px] shrink-0">
-              W
-            </div>
+          <div onClick={() => setSelectedWallet('walletconnect')} className="bg-[#1a110c] p-4 rounded-xl flex items-center gap-4 cursor-pointer transition-colors">
+            <div className="w-8 h-8 rounded-full bg-[#241612] flex items-center justify-center text-[#D28A4C] font-bold text-[11px] shrink-0">W</div>
             <span className="text-[12px] text-foreground tracking-wide flex-1">WalletConnect</span>
             <div className={`w-[14px] h-[14px] rounded-full border-2 flex items-center justify-center shrink-0 ${selectedWallet === 'walletconnect' ? 'border-[#D28A4C]' : 'border-[#38220F]'}`}>
               {selectedWallet === 'walletconnect' && <div className="w-1.5 h-1.5 rounded-full bg-[#D28A4C]"></div>}
             </div>
           </div>
 
-          {/* MetaMask */}
-          <div 
-            onClick={() => setSelectedWallet('metamask')} 
-            className="bg-[#1a110c] p-4 rounded-xl flex items-center gap-4 cursor-pointer transition-colors"
-          >
-            <div className="w-8 h-8 rounded-full bg-[#241612] flex items-center justify-center text-[#D28A4C] font-bold text-[11px] shrink-0">
-              M
-            </div>
+          <div onClick={() => setSelectedWallet('metamask')} className="bg-[#1a110c] p-4 rounded-xl flex items-center gap-4 cursor-pointer transition-colors">
+            <div className="w-8 h-8 rounded-full bg-[#241612] flex items-center justify-center text-[#D28A4C] font-bold text-[11px] shrink-0">M</div>
             <span className="text-[12px] text-foreground tracking-wide flex-1">MetaMask</span>
             <div className={`w-[14px] h-[14px] rounded-full border-2 flex items-center justify-center shrink-0 ${selectedWallet === 'metamask' ? 'border-[#D28A4C]' : 'border-[#38220F]'}`}>
               {selectedWallet === 'metamask' && <div className="w-1.5 h-1.5 rounded-full bg-[#D28A4C]"></div>}
             </div>
           </div>
 
-          {/* Coinbase Wallet */}
-          <div 
-            onClick={() => setSelectedWallet('coinbase')} 
-            className="bg-[#1a110c] p-4 rounded-xl flex items-center gap-4 cursor-pointer transition-colors"
-          >
+          <div onClick={() => setSelectedWallet('coinbase')} className="bg-[#1a110c] p-4 rounded-xl flex items-center gap-4 cursor-pointer transition-colors">
             <div className="w-8 h-8 rounded-full bg-[#241612] border border-[#38220F]/50 flex items-center justify-center shrink-0">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#D28A4C" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M21 12V7H5a2 2 0 0 1 0-4h14v4" />
@@ -182,7 +181,6 @@ export function PaymentPage() {
           </div>
         </div>
 
-        {/* Total e Botão */}
         <div className="flex flex-col mt-auto gap-8 pt-4">
           <div className="flex justify-end items-center gap-4">
             <span className="text-[13px] font-bold text-foreground tracking-wide">Total:</span>
@@ -190,21 +188,20 @@ export function PaymentPage() {
           </div>
 
           <button 
-            onClick={() => setShowSuccessModal(true)}
-            disabled={items.length === 0}
+            type="button"
+            onClick={handleCheckout}
+            disabled={items.length === 0 || isProcessing}
             className="w-full flex items-center justify-center rounded-full bg-[#D28A4C] h-[52px] font-bold text-[#140D0A] transition-colors hover:bg-[#D28A4C]/90 text-[13px] tracking-wide disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Confirmar compra
+            {isProcessing ? 'A processar na Blockchain...' : 'Confirmar compra'}
           </button>
         </div>
       </div>
 
-
       {/* ========================================= */}
-      {/* VERSÃO DESKTOP (Oculta no Mobile)         */}
+      {/* VERSÃO DESKTOP                              */}
       {/* ========================================= */}
       <div className="hidden md:block container mx-auto px-6 lg:px-16 py-12 max-w-[1400px]">
-        {/* Breadcrumbs */}
         <div className="text-[11px] text-foreground mb-12 flex items-center gap-2 font-bold tracking-wide">
           <Link to="/" className="hover:text-primary transition-colors">Início</Link>
           <span className="font-normal text-muted">/</span>
@@ -215,7 +212,6 @@ export function PaymentPage() {
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-x-20 gap-y-16 mb-20">
           
-          {/* COLUNA ESQUERDA: Formulário do Colecionador */}
           <div className="lg:col-span-7 flex flex-col">
             <h1 className="text-[15px] font-bold text-foreground mb-8 tracking-wide">Perfil do colecionador</h1>
             
@@ -286,7 +282,6 @@ export function PaymentPage() {
             </form>
           </div>
 
-          {/* COLUNA DIREITA: Resumo e Carteira */}
           <div className="lg:col-span-5 flex flex-col">
             <div className="flex justify-between items-end mb-6">
               <h2 className="text-[13px] font-bold text-foreground tracking-wide">Seus NFTs</h2>
@@ -364,11 +359,12 @@ export function PaymentPage() {
             </div>
 
             <button 
-              onClick={() => setShowSuccessModal(true)}
-              disabled={items.length === 0}
+              type="button"
+              onClick={handleCheckout}
+              disabled={items.length === 0 || isProcessing}
               className="w-full rounded-md bg-[#D28A4C] py-3.5 font-bold text-[#140D0A] transition-colors hover:bg-[#D28A4C]/80 text-[12px] tracking-wide mt-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Confirmar compra
+              {isProcessing ? 'A processar na Blockchain...' : 'Confirmar compra'}
             </button>
           </div>
         </div>
@@ -412,7 +408,6 @@ export function PaymentPage() {
 
               <div className="w-full h-px bg-[#D28A4C] mb-5"></div>
 
-              {/* Tabela de Topo: Transformada em Grid 2x2 no Mobile para não espremer o texto */}
               <div className="w-full grid grid-cols-2 sm:grid-cols-4 gap-y-4 gap-x-2 text-[9px] sm:text-[10px] mb-5 px-1">
                 <div className="flex flex-col gap-1.5">
                   <span className="text-muted">ID da transação</span>
@@ -445,7 +440,6 @@ export function PaymentPage() {
                   <span className="w-[25%] text-right">Subtotal</span>
                 </div>
 
-                {/* Lista de NFTs com margens menores no mobile */}
                 <div className="flex flex-col gap-3.5 mb-6">
                   {items.map(item => (
                     <div key={item.id} className="flex justify-between items-center text-[9px] sm:text-[10px] px-1">

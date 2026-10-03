@@ -17,11 +17,13 @@
     "lucide-react": "^1.50.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
+    "socket.io-client": "^4.8.4",
     "tailwind-merge": "^3.7.0",
     "tailwindcss-animate": "^1.0.7"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@mswjs/socket.io-binding": "^0.2.0",
     "@types/node": "^24.13.3",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.7",

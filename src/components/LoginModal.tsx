@@ -1,4 +1,4 @@
-// src/components/LoginModal.tsx (ou onde preferir guardar)
+// src/components/LoginModal.tsx
 import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { X, Eye, EyeOff } from 'lucide-react';
@@ -15,36 +15,36 @@ export function LoginModal() {
   const [password, setPassword] = useState('');
   const [username, setUsername] = useState('');
 
-  // Se o modal estiver fechado, não renderiza nada!
   if (!isLoginModalOpen) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email) return;
     setIsLoading(true);
-    await login(email); // O login agora já fecha o modal automaticamente via Contexto
+    await login(email);
     setIsLoading(false);
   };
 
   return (
-    // 'fixed inset-0' faz a tela cobrir o site todo, 'z-[100]' garante que fica por cima de tudo
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#0a0604]/80 backdrop-blur-sm px-4 font-mono">
+    // NO MOBILE: Fundo 100% sólido. NO PC (md:): Fundo transparente com desfoque
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#140D0A] md:bg-[#0a0604]/80 md:backdrop-blur-sm md:px-4 font-mono">
       
-      {/* O Cartão (Modal) */}
-      <div className="w-full max-w-[420px] bg-[#140D0A] rounded-xl relative shadow-2xl border border-[#38220F] overflow-hidden">
+      {/* NO MOBILE: Ocupa 100% da tela (h-full w-full). NO PC (md:): Vira um Pop-up menor e arredondado */}
+      <div className="w-full h-full md:h-auto md:max-w-[420px] bg-[#140D0A] md:rounded-xl relative md:shadow-2xl border-0 md:border md:border-[#38220F] overflow-y-auto">
         
         {/* Barra Laranja no Topo */}
         <div className="absolute top-0 left-0 w-full h-1 bg-[#D28A4C]"></div>
         
-        {/* Botão Fechar (X) - Agora fecha o pop-up */}
+        {/* Botão Fechar (X): Maior e mais fácil de tocar no Mobile */}
         <button 
           onClick={closeLoginModal}
-          className="absolute top-4 right-4 text-[#8a7a6c] hover:text-[#D28A4C] transition-colors"
+          className="absolute top-6 right-6 md:top-4 md:right-4 text-[#8a7a6c] hover:text-[#D28A4C] transition-colors"
         >
-          <X size={18} />
+          <X size={24} className="md:w-[18px] md:h-[18px]" />
         </button>
 
-        <div className="p-8 pt-10">
+        {/* Espaçamento interno: adaptado para centralizar no mobile */}
+        <div className="p-6 pt-20 md:p-8 md:pt-10 min-h-full flex flex-col justify-center md:block">
           
           <div className="flex items-center justify-center gap-3 text-sm font-bold mb-5">
             <button onClick={() => setIsLoginTab(true)} className={`transition-colors ${isLoginTab ? 'text-[#D28A4C]' : 'text-[#8a7a6c] hover:text-[#e0d6cc]'}`}>

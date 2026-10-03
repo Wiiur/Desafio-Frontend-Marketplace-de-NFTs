@@ -12,6 +12,8 @@ import { ProfilePage } from './pages/ProfilePage';
 import { BottomNav } from './components/BottomNav';
 import { AuthProvider } from './context/AuthContext';
 import { LoginModal } from './components/LoginModal';
+import { useEffect } from 'react';
+import { socket } from './services/socket';
 
 const queryClient = new QueryClient();
 
@@ -205,6 +207,39 @@ declare module '@tanstack/react-router' {
 }
 
 export function App() {
+  // Escuta os eventos do Socket e atualiza o React Query
+  useEffect(() => {
+    socket.connect();
+
+    socket.on('nft.updated', (updatedData) => {
+      console.log('Recebido evento do Socket:', updatedData);
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      queryClient.setQueriesData({ queryKey: ['nfts'] }, (oldData: any) => {
+        if (!oldData) return oldData;
+
+        if (Array.isArray(oldData)) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          return oldData.map((nft: any) => 
+            String(nft.id) === String(updatedData.id)
+              ? { ...nft, price: updatedData.price } 
+              : nft
+          );
+        }
+
+        if (String(oldData.id) === String(updatedData.id)) {
+          return { ...oldData, price: updatedData.price };
+        }
+
+        return oldData;
+      });
+    });
+
+    return () => {
+      socket.off('nft.updated');
+      socket.disconnect();
+    };
+  }, []);
   return (
     <QueryClientProvider client={queryClient}>
       <RouterProvider router={router} />
