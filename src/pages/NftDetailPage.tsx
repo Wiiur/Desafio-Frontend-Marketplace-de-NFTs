@@ -285,7 +285,7 @@ export function NftDetailPage() {
           
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-5 mb-10">
             {relatedNfts.map((item) => (
-              <Link to={`/nft/${item.id}`} key={item.id} className="bg-surface p-3.5 rounded-xl border border-surface flex flex-col gap-3 group cursor-pointer hover:-translate-y-1 transition-transform">
+              <Link to="/nft/$id" params={{ id: String(item.id) }} key={item.id} className="bg-surface p-3.5 rounded-xl border border-surface flex flex-col gap-3 group cursor-pointer hover:-translate-y-1 transition-transform">
                 <div className="aspect-square rounded-lg bg-[#140D0A] overflow-hidden relative">
                   {/* Corrigido para object-contain */}
                   <img src={item.imageUrl} alt={item.title} className="w-full h-full object-contain p-2 group-hover:scale-105 transition-transform duration-500" />

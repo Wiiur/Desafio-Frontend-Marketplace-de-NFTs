@@ -121,7 +121,7 @@ export function HomePage() {
         {/* Grid de NFTs Mobile (2 Colunas) */}
         <div className="grid grid-cols-2 gap-4">
           {nftList.map((nft) => (
-            <Link to={`/nft/${nft.id}`} key={nft.id} className="bg-[#1a110c] p-2.5 rounded-2xl border border-[#38220F]/30 flex flex-col gap-2 group cursor-pointer hover:border-[#D28A4C]/50 transition-colors">
+            <Link to="/nft/$id" params={{ id: String(nft.id) }} key={nft.id} className="bg-[#1a110c] p-2.5 rounded-2xl border border-[#38220F]/30 flex flex-col gap-2 group cursor-pointer hover:border-[#D28A4C]/50 transition-colors">
               <div className="aspect-square rounded-xl overflow-hidden bg-[#241612] relative">
                 <img src={nft.imageUrl} alt={nft.title} className="w-full h-full object-cover" />
                 <button 
