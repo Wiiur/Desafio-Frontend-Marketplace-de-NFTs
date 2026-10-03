@@ -46,7 +46,6 @@ export function NftDetailPage() {
         {/* Imagem Principal Arredondada */}
         <div className="px-4 pt-16 pb-6">
           <div className="w-full aspect-square rounded-[24px] overflow-hidden bg-[#241612] shadow-xl">
-            {/* Adicionei object-contain e p-4 aqui para não cortar a imagem do NFT */}
             <img src={nft.imageUrl} alt={nft.title} className="w-full h-full object-contain p-4" />
           </div>
         </div>
@@ -287,7 +286,6 @@ export function NftDetailPage() {
             {relatedNfts.map((item) => (
               <Link to="/nft/$id" params={{ id: String(item.id) }} key={item.id} className="bg-surface p-3.5 rounded-xl border border-surface flex flex-col gap-3 group cursor-pointer hover:-translate-y-1 transition-transform">
                 <div className="aspect-square rounded-lg bg-[#140D0A] overflow-hidden relative">
-                  {/* Corrigido para object-contain */}
                   <img src={item.imageUrl} alt={item.title} className="w-full h-full object-contain p-2 group-hover:scale-105 transition-transform duration-500" />
                 </div>
                 <div className="flex flex-col gap-0.5">

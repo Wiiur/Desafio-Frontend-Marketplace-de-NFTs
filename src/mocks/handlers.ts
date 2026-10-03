@@ -95,7 +95,7 @@ export const handlers = [
   http.post('*/api/checkout', async ({ request }) => {
     await delay(2000); 
 
-    // Lê a chave de idempotência enviada pelos headers (Requisito Sênior do Desafio)
+    // Lê a chave de idempotência enviada pelos headers
     const idempotencyKey = request.headers.get('Idempotency-Key');
     console.log('[MSW] 🔐 Checkout processado com Idempotency-Key:', idempotencyKey);
 

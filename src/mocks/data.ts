@@ -20,7 +20,6 @@ export const mockNfts: NFT[] = [
     description: 'Um colecionável digital finalizado à mão da coleção Kurio Editions.',
     availableQuantity: 50,
     createdAt: '2026-07-29T10:00:00Z',
-    // Correção: creator agora é um objeto
     creator: {
       id: 'c1',
       name: 'Nova Sato',

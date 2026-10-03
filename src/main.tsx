@@ -4,12 +4,9 @@ import ReactDOM from 'react-dom/client';
 import './index.css';
 
 async function enableMocking() {
-  if (import.meta.env.MODE !== 'development') {
-    return;
-  }
   const { worker } = await import('./mocks/browser');
   return worker.start({
-    // @ts-ignore
+    // @ts-expect-error: ignorar tipagem temporaria do router
     onUnhandledRequest: 'bypass',
   });
 }

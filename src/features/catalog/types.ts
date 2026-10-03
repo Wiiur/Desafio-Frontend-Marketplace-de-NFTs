@@ -1,6 +1,4 @@
 // src/features/catalog/types.ts
-
-
 //  Representação principal do NFT no catálogo.
 
 export interface NFT {

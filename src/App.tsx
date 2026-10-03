@@ -174,7 +174,32 @@ const rootRoute = createRootRoute({
   ),
 });
 
-const indexRoute = createRoute({ getParentRoute: () => rootRoute, path: '/', component: HomePage });
+    // 1. Definição do tipo para a validação da URL
+    type HomeSearch = {
+      q?: string;
+      collection?: string;
+      network?: string;
+      minPrice?: string;
+      maxPrice?: string;
+      tab?: string;
+    };
+
+    // 2. Substitua a sua variável indexRoute antiga por esta:
+    const indexRoute = createRoute({ 
+      getParentRoute: () => rootRoute, 
+      path: '/', 
+      validateSearch: (search: Record<string, unknown>): HomeSearch => {
+        return {
+          q: (search.q as string) || '',
+          collection: (search.collection as string) || '',
+          network: (search.network as string) || '',
+          minPrice: (search.minPrice as string) || '0.02',
+          maxPrice: (search.maxPrice as string) || '12.30',
+          tab: (search.tab as string) || 'todos',
+        };
+      },
+      component: HomePage 
+    });
 const detailRoute = createRoute({ getParentRoute: () => rootRoute, path: '/nft/$id', component: NftDetailPage });
 const carrinhoRoute = createRoute({ getParentRoute: () => rootRoute, path: '/carrinho', component: CartPage });
 const mercadoRoute = createRoute({ getParentRoute: () => rootRoute, path: '/mercado', component: () => <div className="p-8 text-foreground font-mono">Página Mercado (Em Breve)</div> });

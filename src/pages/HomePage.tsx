@@ -1,12 +1,14 @@
 // src/pages/HomePage.tsx
-import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { useNavigate, Link } from '@tanstack/react-router';
+import { useNavigate, Link, useSearch } from '@tanstack/react-router';
 import { Search, SlidersHorizontal, ArrowRight, Heart } from 'lucide-react';
 import { NftCard } from '../features/catalog/components/NftCard';
 import { CatalogFilters } from '../features/catalog/components/CatalogFilters';
 import { fetchNfts } from '../services/api';
 import { useCart } from '../context/CartContext';
+import { NftCardSkeleton } from '../features/catalog/components/NftCardSkeleton';
+import { Skeleton } from '../components/ui/skeleton'; // Certifique-se de que criou este componente!
+
 import nft1 from '../assets/NFT1.png';
 import nft2 from '../assets/NFT2.png';
 import nft3 from '../assets/NFT3.png';
@@ -16,29 +18,53 @@ const localImages = [nft1, nft2, nft3, nft4];
 const getRandomImage = () => localImages[Math.floor(Math.random() * localImages.length)];
 
 export function HomePage() {
-  const [selectedCollection, setSelectedCollection] = useState('');
-  const [selectedNetwork, setSelectedNetwork] = useState('');
-  const [priceRange, setPriceRange] = useState({ min: '0.02', max: '12.30' });
-  const [activeTab, setActiveTab] = useState('todos');
   const { addToCart } = useCart();
   const navigate = useNavigate();
 
+  // ==========================================
+  // ESTADO DOS FILTROS BASEADO NA URL
+  // ==========================================
+  type SearchParams = Record<string, string | undefined>;
+  const searchParams = useSearch({ strict: false }) as SearchParams;
 
+  const updateFilters = (newFilters: Record<string, string>) => {
+    // @ts-expect-error: Bypass na tipagem estrita do TanStack Router pois não usamos o gerador de rotas
+    navigate({ search: { ...searchParams, ...newFilters }, replace: true });
+  };
 
+  const searchQuery = searchParams.q || '';
+  const setSearchQuery = (val: string) => updateFilters({ q: val });
+
+  const selectedCollection = searchParams.collection || '';
+  const setSelectedCollection = (val: string) => updateFilters({ collection: val });
+
+  const selectedNetwork = searchParams.network || '';
+  const setSelectedNetwork = (val: string) => updateFilters({ network: val });
+
+  const priceRange = { min: searchParams.minPrice || '0.02', max: searchParams.maxPrice || '12.30' };
+  const setPriceRange = (min: string, max: string) => updateFilters({ minPrice: min, maxPrice: max });
+
+  const activeTab = searchParams.tab || 'todos';
+  const setActiveTab = (val: string) => updateFilters({ tab: val });
+
+  // ==========================================
+  // CHAMADA À API (TANSTACK QUERY)
+  // ==========================================
   const { data: nfts, isLoading, error } = useQuery({
     queryKey: ['nfts'],
     queryFn: fetchNfts,
   });
 
-
   const nftList = Array.isArray(nfts) ? nfts : [];
   
+  // Aplicação local dos filtros
   const filteredNfts = nftList.filter((nft) => {
+    const matchesSearch = searchQuery ? nft.title.toLowerCase().includes(searchQuery.toLowerCase()) || nft.collectionName.toLowerCase().includes(searchQuery.toLowerCase()) : true;
     const matchesCollection = selectedCollection ? nft.collectionName === selectedCollection : true;
     const matchesNetwork = selectedNetwork ? nft.network === selectedNetwork : true;
     const nftPrice = Number(nft.price);
     const matchesPrice = nftPrice >= Number(priceRange.min) && nftPrice <= Number(priceRange.max);
-    return matchesCollection && matchesNetwork && matchesPrice;
+    return matchesSearch && matchesCollection && matchesNetwork && matchesPrice;
   });
 
   const featuredNfts = nftList.slice(0, 4);
@@ -58,6 +84,8 @@ export function HomePage() {
             <input
               type="text"
               placeholder="Explorar coleções"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
               className="bg-transparent text-[13px] text-foreground placeholder:text-[#8a7a6c] focus:outline-none w-full"
             />
           </div>
@@ -68,7 +96,6 @@ export function HomePage() {
 
         {/* Cartão Hero (Destaque) */}
         <div className="relative bg-gradient-to-br from-[#593922] to-[#2a170e] rounded-[24px] p-6 overflow-hidden flex mb-8 border border-[#38220F]/30 shadow-lg">
-          
           <div className="absolute -left-12 -top-12 w-48 h-48 bg-[#D28A4C]/10 rounded-full blur-3xl pointer-events-none"></div>
 
           {/* Conteúdo Texto */}
@@ -87,17 +114,20 @@ export function HomePage() {
 
           {/* Imagens Sobrepostas */}
           <div className="w-[45%] relative z-10 flex justify-end items-center">
-            {/* Imagem Maior */}
-            <div className="w-[100px] h-[100px] rounded-xl overflow-hidden border border-[#eab308] relative z-0 bg-[#140D0A]">
-              {featuredNfts[0] && <img src={featuredNfts[0].imageUrl} className="w-full h-full object-cover" alt="Destaque" />}
-            </div>
-            {/* Imagem Menor Sobreposta */}
-            <div className="absolute -bottom-2 -left-2 w-[52px] h-[52px] rounded-[14px] border-4 border-[#3d2516] overflow-hidden z-10 bg-[#140D0A]">
-              {featuredNfts[1] && <img src={featuredNfts[1].imageUrl} className="w-full h-full object-cover" alt="Destaque pequeno" />}
-            </div>
+            {isLoading ? (
+              <Skeleton className="w-[100px] h-[100px] rounded-xl" />
+            ) : (
+              <>
+                <div className="w-[100px] h-[100px] rounded-xl overflow-hidden border border-[#eab308] relative z-0 bg-[#140D0A]">
+                  {featuredNfts[0] && <img src={featuredNfts[0].imageUrl} className="w-full h-full object-cover" alt="Destaque" />}
+                </div>
+                <div className="absolute -bottom-2 -left-2 w-[52px] h-[52px] rounded-[14px] border-4 border-[#3d2516] overflow-hidden z-10 bg-[#140D0A]">
+                  {featuredNfts[1] && <img src={featuredNfts[1].imageUrl} className="w-full h-full object-cover" alt="Destaque pequeno" />}
+                </div>
+              </>
+            )}
           </div>
 
-          {/* Pontos de Paginação */}
           <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5 z-10">
             <div className="w-1.5 h-1.5 rounded-full bg-[#D28A4C]"></div>
             <div className="w-1.5 h-1.5 rounded-full bg-[#D28A4C]/40"></div>
@@ -107,50 +137,61 @@ export function HomePage() {
 
         {/* Abas de Navegação */}
         <div className="flex items-center gap-4 border-b border-[#38220F]/60 text-[11px] mb-6">
-          <button className="text-[#D28A4C] font-bold border-b-2 border-[#D28A4C] pb-2.5 tracking-wide">
+          <button onClick={() => setActiveTab('todos')} className={`font-bold pb-2.5 tracking-wide transition-colors ${activeTab === 'todos' ? 'text-[#D28A4C] border-b-2 border-[#D28A4C]' : 'text-[#8a7a6c] hover:text-[#e0d6cc]'}`}>
             Todos os NFTs
           </button>
-          <button className="text-[#8a7a6c] pb-2.5 tracking-wide hover:text-[#e0d6cc] transition-colors">
+          <button onClick={() => setActiveTab('novos')} className={`font-bold pb-2.5 tracking-wide transition-colors ${activeTab === 'novos' ? 'text-[#D28A4C] border-b-2 border-[#D28A4C]' : 'text-[#8a7a6c] hover:text-[#e0d6cc]'}`}>
             Novos lançamentos
           </button>
-          <button className="text-[#8a7a6c] pb-2.5 tracking-wide hover:text-[#e0d6cc] transition-colors">
+          <button onClick={() => setActiveTab('alta')} className={`font-bold pb-2.5 tracking-wide transition-colors ${activeTab === 'alta' ? 'text-[#D28A4C] border-b-2 border-[#D28A4C]' : 'text-[#8a7a6c] hover:text-[#e0d6cc]'}`}>
             Em alta
           </button>
         </div>
 
-        {/* Grid de NFTs Mobile (2 Colunas) */}
-        <div className="grid grid-cols-2 gap-4">
-          {nftList.map((nft) => (
-            <Link to="/nft/$id" params={{ id: String(nft.id) }} key={nft.id} className="bg-[#1a110c] p-2.5 rounded-2xl border border-[#38220F]/30 flex flex-col gap-2 group cursor-pointer hover:border-[#D28A4C]/50 transition-colors">
-              <div className="aspect-square rounded-xl overflow-hidden bg-[#241612] relative">
-                <img src={nft.imageUrl} alt={nft.title} className="w-full h-full object-cover" />
-                <button 
-                  onClick={(e) => {
-                    e.preventDefault(); // Impede o link de abrir ao clicar no coração
-                    // lógica de favorito aqui
-                  }}
-                  className="absolute top-2 right-2 w-6 h-6 rounded-full bg-[#140D0A]/60 flex items-center justify-center text-muted hover:text-[#D28A4C] backdrop-blur-sm transition-colors z-20"
-                >
-                  <Heart className="h-3 w-3" />
-                </button>
+        {/* SKELETONS OU LISTAGEM MOBILE */}
+        {isLoading ? (
+          <div className="grid grid-cols-2 gap-4">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="bg-[#1a110c] p-2.5 rounded-2xl border border-[#38220F]/30 flex flex-col gap-2">
+                <Skeleton className="aspect-square w-full rounded-xl bg-[#241612]" />
+                <div className="flex flex-col gap-0.5 px-0.5 mt-1">
+                  <Skeleton className="h-3 w-3/4" />
+                  <Skeleton className="h-3 w-1/2" />
+                </div>
               </div>
-              <div className="flex flex-col gap-0.5 px-0.5">
-                <span className="text-[11px] text-foreground font-bold truncate">{nft.title}</span>
-                <span className="text-[10px] text-[#D28A4C] font-bold">{nft.price} ETH</span>
-              </div>
-            </Link>
-          ))}
-        </div>
-
+            ))}
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 gap-4">
+            {filteredNfts.map((nft) => (
+              <Link to="/nft/$id" params={{ id: String(nft.id) }} key={nft.id} className="bg-[#1a110c] p-2.5 rounded-2xl border border-[#38220F]/30 flex flex-col gap-2 group cursor-pointer hover:border-[#D28A4C]/50 transition-colors">
+                <div className="aspect-square rounded-xl overflow-hidden bg-[#241612] relative">
+                  <img src={nft.imageUrl} alt={nft.title} className="w-full h-full object-cover" />
+                  <button 
+                    onClick={(e) => {
+                      e.preventDefault();
+                      // lógica de favorito aqui
+                    }}
+                    className="absolute top-2 right-2 w-6 h-6 rounded-full bg-[#140D0A]/60 flex items-center justify-center text-muted hover:text-[#D28A4C] backdrop-blur-sm transition-colors z-20"
+                  >
+                    <Heart className="h-3 w-3" />
+                  </button>
+                </div>
+                <div className="flex flex-col gap-0.5 px-0.5">
+                  <span className="text-[11px] text-foreground font-bold truncate">{nft.title}</span>
+                  <span className="text-[10px] text-[#D28A4C] font-bold">{nft.price} ETH</span>
+                </div>
+              </Link>
+            ))}
+          </div>
+        )}
       </div>
 
 
       {/* ========================================= */}
       {/* VERSÃO DESKTOP (Oculta no Mobile)         */}
-      {/* O seu código original mantido intacto     */}
       {/* ========================================= */}
       <div className="hidden md:block container mx-auto px-4 py-12">
-        {/* 1. HERO SECTION */}
         <div className="flex flex-col lg:flex-row items-center justify-between mb-16 mt-8 gap-12 w-full">
           <div className="flex flex-col gap-7 flex-1 lg:pl-5 w-full">
             <span className="text-md text-foreground tracking-wide">Bem-vindo à Kurio</span>
@@ -177,7 +218,6 @@ export function HomePage() {
           </div>
         </div>
 
-        {/* 2. CATÁLOGO COM FILTROS E ABAS */}
         <div className="flex flex-col gap-8 md:flex-row">
           <aside className="w-full md:w-72 shrink-0 flex flex-col gap-8">
             <CatalogFilters
@@ -187,7 +227,7 @@ export function HomePage() {
               onNetworkChange={setSelectedNetwork}
               minPrice={priceRange.min}
               maxPrice={priceRange.max}
-              onPriceChange={(min, max) => setPriceRange({ min, max })}
+              onPriceChange={setPriceRange}
             />
             <div className="rounded-xl bg-surface p-6 border border-surface flex flex-col gap-4">
               <div className="flex flex-col">
@@ -222,16 +262,20 @@ export function HomePage() {
               </div>
             </div>
 
-            {isLoading && <div className="flex justify-center items-center h-64 text-primary">A carregar mercado digital...</div>}
             {error && <div className="text-red-500">Erro ao carregar os NFTs do servidor simulado.</div>}
 
-            {filteredNfts && filteredNfts.length === 0 && (
+            {/* SKELETONS PARA O DESKTOP */}
+            {isLoading ? (
+              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <NftCardSkeleton key={i} />
+                ))}
+              </div>
+            ) : filteredNfts.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-64 text-muted">
                 <p>Nenhum NFT encontrado com os filtros selecionados.</p>
               </div>
-            )}
-
-            {filteredNfts && filteredNfts.length > 0 && (
+            ) : (
               <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3">
                 {filteredNfts.map((nft) => (
                   <NftCard 
@@ -258,11 +302,7 @@ export function HomePage() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-16">
           <div className="rounded-xl bg-surface p-8 border border-surface flex items-center gap-6">
             <div className="w-[250px] h-[250px] flex items-center justify-center rounded-[8px] bg-[#140D0A] shrink-0 overflow-hidden p-2">
-              <img 
-                src={getRandomImage()} 
-                alt="Promo" 
-                className="max-w-full max-h-full object-contain" 
-              />
+              <img src={getRandomImage()} alt="Promo" className="max-w-full max-h-full object-contain" />
             </div>
             <div className="flex flex-col gap-3">
               <h3 className="font-bold text-base text-foreground">Lançamentos gerais de edição limitada</h3>
@@ -275,11 +315,7 @@ export function HomePage() {
 
           <div className="rounded-xl bg-surface p-8 border border-surface flex items-center gap-6">
             <div className="w-[250px] h-[250px] flex items-center justify-center rounded-[8px] bg-[#140D0A] shrink-0 overflow-hidden p-2">
-              <img 
-                src={getRandomImage()} 
-                alt="Promo" 
-                className="max-w-full max-h-full object-contain" 
-              />
+              <img src={getRandomImage()} alt="Promo" className="max-w-full max-h-full object-contain" />
             </div>
             <div className="flex flex-col gap-3">
               <h3 className="font-bold text-base text-foreground">Arte digital selecionada e muito mais</h3>

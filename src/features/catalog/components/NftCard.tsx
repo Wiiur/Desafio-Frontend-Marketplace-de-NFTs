@@ -28,10 +28,10 @@ export function NftCard({ nft, onSelect, onAddToCart }: NftCardProps) {
       const previousNfts = queryClient.getQueryData(['nfts']);
 
       // 3. Atualiza o cache imediatamente na interface de forma otimista
-      queryClient.setQueryData(['nfts'], (old: any) => {
+      queryClient.setQueryData(['nfts'], (old: NFT[] | undefined) => {
         if (!old) return old;
         if (Array.isArray(old)) {
-          return old.map((item: any) =>
+          return old.map((item: NFT) =>
             item.id === nft.id ? { ...item, isFavorite: !item.isFavorite } : item
           );
         }
