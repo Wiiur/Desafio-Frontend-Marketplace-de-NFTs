@@ -1,16 +1,14 @@
 // src/features/catalog/types.ts
 
-/**
- * Representação principal do NFT no catálogo.
- */
+
+//  Representação principal do NFT no catálogo.
+
 export interface NFT {
   id: string;
   title: string;
   description: string;
   imageUrl: string;
-  // Valores em ETH devem trafegar como strings decimais para manter a precisão
   price: string; 
-  // Quantidades devem ser tratadas como números inteiros
   availableQuantity: number; 
   creator: {
     id: string;
@@ -22,9 +20,9 @@ export interface NFT {
   createdAt: string;
 }
 
-/**
- * Contrato padrão para respostas paginadas da API (Mock/MSW).
- */
+
+//  Contrato padrão para respostas paginadas da API (Mock/MSW).
+
 export interface PaginatedResponse<T> {
   data: T[];
   meta: {
@@ -35,9 +33,9 @@ export interface PaginatedResponse<T> {
   };
 }
 
-/**
- * Estado dos filtros que irá para a URL via TanStack Router.
- */
+
+//  Estado dos filtros que irá para a URL via TanStack Router.
+
 export interface CatalogFilters {
   search?: string;
   minPrice?: string;
@@ -46,9 +44,9 @@ export interface CatalogFilters {
   page?: number;
 }
 
-/**
- * Contrato do evento Socket.IO (nft.updated)
- */
+
+  // Contrato do evento Socket.IO (nft.updated)
+
 export interface NftUpdatedEvent {
   nftId: string;
   newPrice: string;
@@ -56,7 +54,7 @@ export interface NftUpdatedEvent {
   version: number; 
 }
 
-// src/features/catalog/types.ts
+// 
 export interface NFT {
   id: string;
   title: string;

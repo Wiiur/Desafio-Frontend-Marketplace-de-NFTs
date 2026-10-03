@@ -21,12 +21,12 @@ export const api = axios.create({
 export async function fetchNfts(): Promise<NFT[]> {
   const response = await api.get<NFT[]>('/nfts');
   
-  // 4. Intercetar os dados e trocar a imagem original pela nossa aleatória
+  // 4. Intercetar os dados e trocar a imagem original pelo o aleatória
   const nftsComImagensLocais = response.data.map(nft => ({
     ...nft,
     imageUrl: getRandomImage()
   }));
 
-  // Devolvemos a nova lista. Assim o Carrinho, Detalhes e Catálogo atualizam sozinhos!
+  // Devolve a nova lista. Assim o Carrinho, Detalhes e Catálogo atualizam sozinhos!
   return nftsComImagensLocais;
 }

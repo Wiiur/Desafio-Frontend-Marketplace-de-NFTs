@@ -87,7 +87,6 @@ export function ProfilePage() {
         {/* ÁREA DE CONTEÚDO DIREITA */}
         <div className="flex-1 flex flex-col pt-2">
           
-          {/* TAB 1: DADOS DO PERFIL */}
           {activeTab === 'dados' && (
             <div className="animate-in fade-in duration-300">
               <h1 className="text-[15px] font-bold text-foreground mb-8 tracking-wide">Perfil do colecionador</h1>
@@ -132,7 +131,7 @@ export function ProfilePage() {
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-6 mb-8">
                 <FormGroup label="Senha atual" type="password" isPassword />
-                <div className="hidden md:block"></div> {/* Espaço vazio para manter a grelha */}
+                <div className="hidden md:block"></div>
                 <FormGroup label="Nova senha" type="password" isPassword />
                 <div className="hidden md:block"></div>
                 <FormGroup label="Confirmar nova senha" type="password" isPassword />

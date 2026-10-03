@@ -355,10 +355,8 @@ export function PaymentPage() {
       {/* MODAL DE SUCESSO (RECIBO)                 */}
       {/* ========================================= */}
       {showSuccessModal && (
-        // Alterado para z-[60] para ficar POR CIMA da BottomNav
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-[#140D0A]/95 backdrop-blur-sm p-4">
-          
-          {/* Adicionado max-h-[85vh] e overflow-y-auto para permitir scroll se houver muitos itens */}
+
           <div className="bg-[#140D0A] w-full max-w-[500px] max-h-[85vh] overflow-y-auto border border-[#38220F] border-b-[6px] border-b-[#D28A4C] relative flex flex-col font-mono shadow-2xl rounded-t-xl">
             
             <button 

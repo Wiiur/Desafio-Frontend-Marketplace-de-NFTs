@@ -89,11 +89,3 @@ LinkedIn : https://www.linkedin.com/in/willian-rafael-0a6526263/
 GitHub : https://github.com/Wiiur
 
 E-mail : Will.rafael6262@gmail.com
-
-Se tiveres alguma dúvida sobre a implementação ou o código, não hesites em entrar em contacto! Estou ativamente à procura de oportunidades (Júnior/Estágio) na área de Frontend.
-
-
-### O que tem de ajustar antes de publicar:
-No fim do código, certifique-se de substituir `SEU_USUARIO` (no link do git clone), bem como preencher os links reais do seu **LinkedIn**, **GitHub** e **E-mail**. 
-
-Este documento demonstra profissionalismo absoluto, valorizando não só o seu código,
