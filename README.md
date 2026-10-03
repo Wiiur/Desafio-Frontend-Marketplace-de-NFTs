@@ -60,7 +60,7 @@ Siga os passos abaixo para rodar a aplicação na sua máquina:
 1. Clone o repositório
 
 Bash
-git clone [https://github.com/SEU_USUARIO/kurio-nft-marketplace.git](https://github.com/SEU_USUARIO/kurio-nft-marketplace.git)
+git clone [https://github.com/Wiiur/Desafio-Frontend-Marketplace-de-NFTs.git](https://github.com/Wiiur/Desafio-Frontend-Marketplace-de-NFTs.git)
 2. Aceda à pasta do projeto
 
 Bash
