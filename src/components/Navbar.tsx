@@ -1,11 +1,14 @@
 // src/components/Navbar.tsx
 import { useState } from 'react';
 import { Link } from '@tanstack/react-router';
-import { ShoppingCart, Search, LogOut, Menu, X } from 'lucide-react';
+import { ShoppingCart, Search, LogOut, LogIn, Menu, X, User } from 'lucide-react';
 import { useCart } from '../context/CartContext';
+import { useAuth } from '../context/AuthContext';
 
 export function Navbar() {
   const { items } = useCart();
+  // 1. Puxamos as funções do AuthContext
+  const { isAuthenticated, openLoginModal, logout } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   return (
@@ -50,13 +53,30 @@ export function Navbar() {
             )}
           </Link>
           
-          <Link 
-            to="/login"
-            className="hidden sm:flex items-center gap-2 rounded-lg bg-primary px-5 py-2.5 font-bold text-[#140D0A] transition-colors hover:bg-primary/80 ml-2 text-xs lg:text-sm"
-          >
-            <LogOut className="h-4 w-4" />
-            Entrar
-          </Link>
+          {/* Lógica de Autenticação na Navbar Desktop */}
+          {isAuthenticated ? (
+            <div className="hidden sm:flex items-center gap-2 ml-2">
+              <Link to="/perfil" className="flex items-center gap-2 text-foreground hover:text-primary transition-colors text-xs lg:text-sm mr-2">
+                <User className="h-4 w-4" />
+                Perfil
+              </Link>
+              <button 
+                onClick={logout}
+                className="flex items-center gap-2 rounded-lg bg-[#241612] border border-[#38220F] px-4 py-2 font-bold text-foreground transition-colors hover:text-primary text-xs lg:text-sm"
+              >
+                <LogOut className="h-4 w-4" />
+                Sair
+              </button>
+            </div>
+          ) : (
+            <button 
+              onClick={openLoginModal}
+              className="hidden sm:flex items-center gap-2 rounded-lg bg-primary px-5 py-2.5 font-bold text-[#140D0A] transition-colors hover:bg-primary/80 ml-2 text-xs lg:text-sm"
+            >
+              <LogIn className="h-4 w-4" />
+              Entrar
+            </button>
+          )}
 
           {/* BOTÃO MENU MOBILE (Escondido em Desktop) */}
           <button 
@@ -71,43 +91,53 @@ export function Navbar() {
       {/* MENU DROPDOWN MOBILE */}
       {isMobileMenuOpen && (
         <div className="md:hidden absolute top-20 left-0 w-full bg-[#140D0A] border-b border-surface/50 flex flex-col px-6 py-4 gap-4 shadow-2xl">
-          <Link 
-            to="/" 
-            onClick={() => setIsMobileMenuOpen(false)}
-            className="text-primary font-bold text-sm py-2 border-b border-surface/30"
-          >
+          <Link to="/" onClick={() => setIsMobileMenuOpen(false)} className="text-primary font-bold text-sm py-2 border-b border-surface/30">
             Início
           </Link>
-          <Link 
-            to="/mercado" 
-            onClick={() => setIsMobileMenuOpen(false)}
-            className="text-foreground text-sm py-2 border-b border-surface/30"
-          >
+          <Link to="/mercado" onClick={() => setIsMobileMenuOpen(false)} className="text-foreground text-sm py-2 border-b border-surface/30">
             Mercado
           </Link>
-          <Link 
-            to="/criadores" 
-            onClick={() => setIsMobileMenuOpen(false)}
-            className="text-foreground text-sm py-2 border-b border-surface/30"
-          >
+          <Link to="/criadores" onClick={() => setIsMobileMenuOpen(false)} className="text-foreground text-sm py-2 border-b border-surface/30">
             Criadores
           </Link>
-          <Link 
-            to="/aprenda" 
-            onClick={() => setIsMobileMenuOpen(false)}
-            className="text-foreground text-sm py-2 border-b border-surface/30"
-          >
+          <Link to="/aprenda" onClick={() => setIsMobileMenuOpen(false)} className="text-foreground text-sm py-2 border-b border-surface/30">
             Aprenda
           </Link>
           
-          <Link 
-            to="/login"
-            onClick={() => setIsMobileMenuOpen(false)}
-            className="flex items-center justify-center gap-2 rounded-lg bg-primary px-5 py-3 font-bold text-[#140D0A] mt-2 w-full text-sm"
-          >
-            <LogOut className="h-4 w-4" />
-            Entrar / Criar conta
-          </Link>
+          {/* Lógica de Autenticação no Menu Mobile */}
+          {isAuthenticated ? (
+            <div className="flex flex-col gap-2 mt-2">
+              <Link 
+                to="/perfil"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="flex items-center justify-center gap-2 rounded-lg bg-[#241612] border border-[#38220F] px-5 py-3 font-bold text-foreground w-full text-sm"
+              >
+                <User className="h-4 w-4" />
+                Meu Perfil
+              </Link>
+              <button 
+                onClick={() => {
+                  logout();
+                  setIsMobileMenuOpen(false);
+                }}
+                className="flex items-center justify-center gap-2 rounded-lg bg-red-900/20 border border-red-900/50 px-5 py-3 font-bold text-red-500 w-full text-sm"
+              >
+                <LogOut className="h-4 w-4" />
+                Sair
+              </button>
+            </div>
+          ) : (
+            <button 
+              onClick={() => {
+                openLoginModal();
+                setIsMobileMenuOpen(false);
+              }}
+              className="flex items-center justify-center gap-2 rounded-lg bg-primary px-5 py-3 font-bold text-[#140D0A] mt-2 w-full text-sm"
+            >
+              <LogIn className="h-4 w-4" />
+              Entrar / Criar conta
+            </button>
+          )}
         </div>
       )}
     </header>

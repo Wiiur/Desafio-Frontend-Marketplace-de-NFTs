@@ -3,6 +3,8 @@ import { useState } from 'react';
 import { Link } from '@tanstack/react-router';
 import { ChevronDown, ChevronLeft, MoreVertical } from 'lucide-react';
 import { useCart } from '../context/CartContext';
+// REMOVIDO o import do Navigate, já não precisamos dele!
+import { useAuth } from '../context/AuthContext';
 
 interface FormGroupProps {
   label: string;
@@ -41,8 +43,29 @@ export function PaymentPage() {
   const networkFee = 0.016;
   const total = subtotal > 0 ? subtotal + networkFee : 0;
 
+  // 1. Puxamos o isAuthenticated e a função de abrir o pop-up
+  const { isAuthenticated, openLoginModal } = useAuth();
+
+  // 2. Se NÃO estiver logado, mostramos um aviso com o botão do Pop-up
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-[60vh] flex flex-col items-center justify-center gap-6 font-mono px-4">
+        <h2 className="text-xl font-bold text-foreground">Acesso Restrito</h2>
+        <p className="text-muted text-center text-sm max-w-md">
+          Tem de iniciar sessão na sua conta Kurio para aceder ao checkout e finalizar a sua compra.
+        </p>
+        <button 
+          onClick={openLoginModal} 
+          className="bg-[#D28A4C] text-[#140D0A] px-8 py-3 rounded-lg font-bold hover:bg-[#D28A4C]/80 transition-colors"
+        >
+          Fazer Login / Criar Conta
+        </button>
+      </div>
+    );
+  }
+
   return (
-    <div className="w-full font-mono bg-[#0a0604] md:bg-[#241612]">
+    <div className="w-full font-mono bg-[#140D0A]">
       
       {/* ========================================= */}
       {/* VERSÃO MOBILE (Idêntica à Imagem de Referência) */}
@@ -273,7 +296,7 @@ export function PaymentPage() {
             <div className="flex flex-col gap-2 mb-6">
               {items.length === 0 && <p className="text-xs text-muted">Nenhum item no carrinho.</p>}
               {items.map((item) => (
-                <div key={item.id} className="bg-[#1a110c] p-2.5 rounded-md flex items-center justify-between border border-[#38220F]/40">
+                <div key={item.id} className="bg-[#241612] p-2.5 rounded-md flex items-center justify-between border border-[#38220F]/40">
                   <div className="flex items-center gap-4">
                     <img src={item.imageUrl} alt={item.title} className="w-12 h-12 rounded object-cover bg-[#140D0A]" />
                     <div className="flex flex-col gap-1">
@@ -357,7 +380,7 @@ export function PaymentPage() {
       {showSuccessModal && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-[#140D0A]/95 backdrop-blur-sm p-4">
 
-          <div className="bg-[#140D0A] w-full max-w-[500px] max-h-[85vh] overflow-y-auto border border-[#38220F] border-b-[6px] border-b-[#D28A4C] relative flex flex-col font-mono shadow-2xl rounded-t-xl">
+          <div className="bg-[#241612] w-full max-w-[500px] max-h-[85vh] overflow-y-auto border border-[#140D0A] border-b-[6px] border-b-[#D28A4C] relative flex flex-col font-mono shadow-2xl rounded-t-xl">
             
             <button 
               onClick={() => {
@@ -387,7 +410,7 @@ export function PaymentPage() {
                 Seus NFTs agora estão na sua carteira
               </p>
 
-              <div className="w-full h-px bg-[#38220F] mb-5"></div>
+              <div className="w-full h-px bg-[#D28A4C] mb-5"></div>
 
               {/* Tabela de Topo: Transformada em Grid 2x2 no Mobile para não espremer o texto */}
               <div className="w-full grid grid-cols-2 sm:grid-cols-4 gap-y-4 gap-x-2 text-[9px] sm:text-[10px] mb-5 px-1">
@@ -395,15 +418,15 @@ export function PaymentPage() {
                   <span className="text-muted">ID da transação</span>
                   <span className="text-foreground tracking-tight truncate">0xA91F…E82C</span>
                 </div>
-                <div className="flex flex-col gap-1.5 sm:border-l sm:border-[#38220F] sm:pl-3">
+                <div className="flex flex-col gap-1.5 sm:border-l sm:border-[#D28A4C] sm:pl-3">
                   <span className="text-muted">Data</span>
                   <span className="text-foreground tracking-tight">29 Jul, 2026</span>
                 </div>
-                <div className="flex flex-col gap-1.5 sm:border-l sm:border-[#38220F] sm:pl-3">
+                <div className="flex flex-col gap-1.5 sm:border-l sm:border-[#D28A4C] sm:pl-3">
                   <span className="text-muted">Total</span>
                   <span className="text-foreground tracking-tight">{total.toFixed(3)} ETH</span>
                 </div>
-                <div className="flex flex-col gap-1.5 sm:border-l sm:border-[#38220F] sm:pl-3">
+                <div className="flex flex-col gap-1.5 sm:border-l sm:border-[#D28A4C] sm:pl-3">
                   <span className="text-muted">Carteira</span>
                   <span className="text-foreground tracking-tight capitalize truncate">
                     {selectedWallet === 'all' ? 'WalletConnect' : selectedWallet}
@@ -411,12 +434,12 @@ export function PaymentPage() {
                 </div>
               </div>
 
-              <div className="w-full h-px bg-[#38220F] mb-6"></div>
+              <div className="w-full h-px bg-[#D28A4C] mb-6"></div>
 
               <div className="w-full text-left mb-4">
                 <h3 className="text-[11px] font-bold text-foreground tracking-wide mb-4">Detalhes da transação</h3>
                 
-                <div className="flex justify-between text-[9px] sm:text-[10px] text-foreground font-bold border-b border-[#38220F] pb-3 mb-4 px-1">
+                <div className="flex justify-between text-[9px] sm:text-[10px] text-foreground font-bold border-b border-[#D28A4C] pb-3 mb-4 px-1">
                   <span className="w-[55%]">NFTs</span>
                   <span className="w-[20%] text-center">Edições</span>
                   <span className="w-[25%] text-right">Subtotal</span>
@@ -443,14 +466,14 @@ export function PaymentPage() {
                   ))}
                 </div>
 
-                <div className="flex flex-col gap-2.5 border-t border-[#38220F] pt-4 mb-6 text-[9px] sm:text-[10px] px-1">
+                <div className="flex flex-col gap-2.5 border-b border-[#D28A4C] pt-4 mb-6 text-[9px] sm:text-[10px] px-1">
                   <div className="flex justify-end items-center">
-                    <span className="text-foreground w-1/3 text-right pr-4 sm:pr-6">Taxa de rede</span>
-                    <span className="text-foreground font-bold w-1/4 text-right">{networkFee} ETH</span>
+                    <span className="text-foreground w-1/3 text-left pr-4 text-[13px]">Taxa de rede</span>
+                    <span className="text-foreground font-bold w-1/4 text-right text-[12px]">{networkFee} ETH</span>
                   </div>
                   <div className="flex justify-end items-center">
-                    <span className="text-foreground font-bold w-1/3 text-right pr-4 sm:pr-6">Total</span>
-                    <span className="text-[#D28A4C] font-bold w-1/4 text-right text-[11px] sm:text-[12px]">{total.toFixed(3)} ETH</span>
+                    <span className="text-foreground font-bold w-1/3 text-left text-[15px]">Total</span>
+                    <span className="text-[#D28A4C] font-bold w-1/4 text-right text-[15px] sm:text-[15px]">{total.toFixed(3)} ETH</span>
                   </div>
                 </div>
 

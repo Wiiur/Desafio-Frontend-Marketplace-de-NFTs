@@ -9,8 +9,9 @@ import { NftDetailPage } from './pages/NftDetailPage';
 import { CartPage } from './pages/CartPage';
 import { PaymentPage } from './pages/PaymentPage';
 import { ProfilePage } from './pages/ProfilePage';
-import { LoginPage } from './pages/LoginPage';
 import { BottomNav } from './components/BottomNav';
+import { AuthProvider } from './context/AuthContext';
+import { LoginModal } from './components/LoginModal';
 
 const queryClient = new QueryClient();
 
@@ -146,22 +147,28 @@ function GlobalFooter() {
 
 const rootRoute = createRootRoute({
   component: () => (
-    <CartProvider>
-      <div className="min-h-screen flex flex-col  text-foreground font-mono pb-[88px] md:pb-0">
-        
-        <Navbar />
-        
-        <main className="flex-1 flex flex-col">
-          <Outlet />
-        </main>
-        
-        <div className="hidden md:block">
-          <GlobalFooter />
-        </div>
+    // 1. Envolvemos a base do layout com AuthProvider
+    <AuthProvider>
+      <CartProvider>
+        <div className="min-h-screen flex flex-col text-foreground font-mono pb-[88px] md:pb-0">
+          
+          {/* 2. O Modal de Login injetado no topo. Fica escondido até ser invocado */}
+          <LoginModal />
+          
+          <Navbar />
+          
+          <main className="flex-1 flex flex-col">
+            <Outlet />
+          </main>
+          
+          <div className="hidden md:block">
+            <GlobalFooter />
+          </div>
 
-        <BottomNav />
-      </div>
-    </CartProvider>
+          <BottomNav />
+        </div>
+      </CartProvider>
+    </AuthProvider>
   ),
 });
 
@@ -171,10 +178,10 @@ const carrinhoRoute = createRoute({ getParentRoute: () => rootRoute, path: '/car
 const mercadoRoute = createRoute({ getParentRoute: () => rootRoute, path: '/mercado', component: () => <div className="p-8 text-foreground font-mono">Página Mercado (Em Breve)</div> });
 const criadoresRoute = createRoute({ getParentRoute: () => rootRoute, path: '/criadores', component: () => <div className="p-8 text-foreground font-mono">Página Criadores (Em Breve)</div> });
 const aprendaRoute = createRoute({ getParentRoute: () => rootRoute, path: '/aprenda', component: () => <div className="p-8 text-foreground font-mono">Página Aprenda (Em Breve)</div> });
-const loginRoute = createRoute({ getParentRoute: () => rootRoute, path: '/login', component: LoginPage });
 const pagamentoRoute = createRoute({ getParentRoute: () => rootRoute, path: '/pagamento', component: PaymentPage });
 const perfilRoute = createRoute({ getParentRoute: () => rootRoute, path: '/perfil', component: ProfilePage });
 
+// Removida a antiga loginRoute do array
 const routeTree = rootRoute.addChildren([
   indexRoute,
   detailRoute,
@@ -183,7 +190,6 @@ const routeTree = rootRoute.addChildren([
   aprendaRoute,
   carrinhoRoute,
   pagamentoRoute,
-  loginRoute,
   perfilRoute,
 ]);
 
