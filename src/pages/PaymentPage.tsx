@@ -6,6 +6,7 @@ import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { socket } from '../services/socket';
 import { api } from '../services/api';
+import { ShadcnSelect } from '../components/ui/select';
 
 interface FormGroupProps {
   label: string;
@@ -29,10 +30,19 @@ const FormGroup = ({ label, required = true, type = "text", placeholder = "", de
   </div>
 );
 
+// Função para gerar UUIDs (Chave de Idempotência Sênior)
+const generateUUID = () => {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    const r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
+};
+
 export function PaymentPage() {
   const { items, clearCart } = useCart();
   
   const [selectedWallet, setSelectedWallet] = useState('coinbase');
+  const [selectedNetwork, setSelectedNetwork] = useState('');
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [selectedConnected, setSelectedConnected] = useState('reserva');
 
@@ -59,12 +69,22 @@ export function PaymentPage() {
     };
   }, []);
 
-  // 2. Chama a API de Checkout
+  // 2. Chama a API de Checkout (AGORA COM IDEMPOTÊNCIA)
   const executeCheckout = async () => {
-    console.log('A executar checkout na API...');
+    console.log('A executar checkout na API com idempotência...');
     setIsProcessing(true);
+    
+    const idempotencyKey = generateUUID();
+
     try {
-      await api.post('/checkout', { items, total });
+      await api.post('/checkout', 
+        { items, total, network: selectedNetwork, wallet: selectedWallet },
+        {
+          headers: {
+            'Idempotency-Key': idempotencyKey
+          }
+        }
+      );
     } catch (error) {
       console.error('Erro na compra:', error);
       setIsProcessing(false);
@@ -219,17 +239,16 @@ export function PaymentPage() {
               <FormGroup label="Nome de exibição" />
               <FormGroup label="Nome de usuário" />
               
-              <div className="flex flex-col gap-2">
-                <label className="text-[11px] text-foreground tracking-wide">Rede <span className="text-[#D28A4C]">*</span></label>
-                <div className="relative">
-                  <select className="w-full bg-transparent border border-[#38220F] rounded-md px-3 py-2.5 text-xs text-muted focus:outline-none focus:border-[#D28A4C] appearance-none cursor-pointer">
-                    <option>Selecione uma rede</option>
-                    <option>Ethereum</option>
-                    <option>Polygon</option>
-                  </select>
-                  <ChevronDown className="absolute right-3 top-3 h-4 w-4 text-[#D28A4C] pointer-events-none" />
-                </div>
-              </div>
+              <ShadcnSelect
+                label="Rede *"
+                options={[
+                  { label: 'Selecione uma rede', value: '' },
+                  { label: 'Ethereum', value: 'ethereum' },
+                  { label: 'Polygon', value: 'polygon' }
+                ]}
+                value={selectedNetwork}
+                onChange={(e) => setSelectedNetwork(e.target.value)}
+              />
               
               <FormGroup label="Nome do perfil" />
               
@@ -242,17 +261,17 @@ export function PaymentPage() {
                 <input type="text" placeholder="ENS ou carteira secundária (opcional)" className="w-full bg-transparent border border-[#38220F] rounded-md px-3 py-2.5 text-xs text-muted placeholder:text-muted/40 focus:outline-none focus:border-[#D28A4C]" />
               </div>
 
-              <div className="flex flex-col gap-2">
-                <label className="text-[11px] text-foreground tracking-wide">Tipo de carteira <span className="text-[#D28A4C]">*</span></label>
-                <div className="relative">
-                  <select className="w-full bg-transparent border border-[#38220F] rounded-md px-3 py-2.5 text-xs text-muted focus:outline-none focus:border-[#D28A4C] appearance-none cursor-pointer">
-                    <option>Selecione uma carteira</option>
-                    <option>MetaMask</option>
-                    <option>Coinbase</option>
-                  </select>
-                  <ChevronDown className="absolute right-3 top-3 h-4 w-4 text-[#D28A4C] pointer-events-none" />
-                </div>
-              </div>
+              <ShadcnSelect
+                label="Tipo de carteira *"
+                options={[
+                  { label: 'Selecione uma carteira', value: '' },
+                  { label: 'MetaMask', value: 'metamask' },
+                  { label: 'Coinbase', value: 'coinbase' },
+                  { label: 'WalletConnect', value: 'walletconnect' }
+                ]}
+                value={selectedWallet}
+                onChange={(e) => setSelectedWallet(e.target.value)}
+              />
               
               <FormGroup label="Código de indicação" />
               <FormGroup label="E-mail" />

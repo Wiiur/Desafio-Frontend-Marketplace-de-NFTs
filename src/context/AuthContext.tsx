@@ -1,6 +1,5 @@
 // src/context/AuthContext.tsx
-import { createContext, useContext, useState, ReactNode } from 'react';
-
+import { createContext, useContext, useState, type ReactNode } from 'react';
 interface User {
   id: string;
   name: string;

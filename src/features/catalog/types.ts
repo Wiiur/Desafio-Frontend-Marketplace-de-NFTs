@@ -72,4 +72,5 @@ export interface NFT {
   network: 'Ethereum' | 'Polygon' | 'Solana';
   createdAt: string;
   categoria?: string;
+  isFavorite?: boolean;
 }

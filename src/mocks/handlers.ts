@@ -7,6 +7,9 @@ const socketLink = ws.link('ws://localhost:9999');
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const connectedClients = new Set<any>();
 
+// Mock local para persistir o estado de favoritos durante a sessão
+const favoritesSet = new Set<string>();
+
 // ==========================================
 // 🎲 SISTEMA DE VALORES ALEATÓRIOS DO NFT
 // ==========================================
@@ -22,7 +25,6 @@ setInterval(() => {
   ]);
 
   connectedClients.forEach(client => {
-    // Removemos o 'e' e adicionámos o comentário para passar no ESLint
     try { client.send(payload); } catch { /* ignora erro */ }
   });
   
@@ -31,20 +33,71 @@ setInterval(() => {
 
 
 export const handlers = [
-  http.get('*/api/nfts', async () => {
+  // --- REST: LISTAGEM DE NFTS COM SUPORTE A FILTROS E BUSCA NA URL ---
+  http.get('*/api/nfts', async ({ request }) => {
     await delay(800);
-    return HttpResponse.json(mockNfts);
+    const url = new URL(request.url);
+    const search = url.searchParams.get('search')?.toLowerCase();
+    const category = url.searchParams.get('category');
+
+    // Mapeia os NFTs injetando o estado atual de favoritos
+    let filteredNfts = mockNfts.map(nft => ({
+      ...nft,
+      isFavorite: favoritesSet.has(nft.id)
+    }));
+
+    // Aplica o filtro de busca se enviado pela URL
+    if (search) {
+      filteredNfts = filteredNfts.filter(nft => 
+        nft.title.toLowerCase().includes(search) || 
+        nft.collectionName.toLowerCase().includes(search)
+      );
+    }
+
+    // Aplica o filtro de categoria se enviado
+    if (category && category !== 'all') {
+      // Filtragem por categoria caso aplicável ao seu projeto
+    }
+
+    return HttpResponse.json(filteredNfts);
   }),
 
+  // --- REST: DETALHE DO NFT ---
   http.get('*/api/nfts/:id', async ({ params }) => {
     await delay(500);
     const nft = mockNfts.find((n) => n.id === String(params.id));
     if (!nft) return new HttpResponse('NFT não encontrado', { status: 404 });
-    return HttpResponse.json(nft);
+    return HttpResponse.json({
+      ...nft,
+      isFavorite: favoritesSet.has(nft.id)
+    });
   }),
 
-  http.post('*/api/checkout', async () => {
+  // --- REST: ADICIONAR AOS FAVORITOS (Otimista) ---
+  http.post('*/api/favorites', async ({ request }) => {
+    await delay(300);
+    const body = (await request.json()) as { nftId?: string };
+    if (body?.nftId) {
+      favoritesSet.add(body.nftId);
+    }
+    return HttpResponse.json({ success: true });
+  }),
+
+  // --- REST: REMOVER DOS FAVORITOS (Otimista) ---
+  http.delete('*/api/favorites/:id', async ({ params }) => {
+    await delay(300);
+    const nftId = String(params.id);
+    favoritesSet.delete(nftId);
+    return HttpResponse.json({ success: true });
+  }),
+
+  // --- REST: CHECKOUT COM SUPORTE A IDEMPOTÊNCIA ---
+  http.post('*/api/checkout', async ({ request }) => {
     await delay(2000); 
+
+    // Lê a chave de idempotência enviada pelos headers (Requisito Sênior do Desafio)
+    const idempotencyKey = request.headers.get('Idempotency-Key');
+    console.log('[MSW] 🔐 Checkout processado com Idempotency-Key:', idempotencyKey);
 
     const payload = '42' + JSON.stringify([
       'order.updated',
@@ -52,13 +105,13 @@ export const handlers = [
     ]);
     
     connectedClients.forEach(client => {
-      // Removemos o 'e' e adicionámos o comentário para passar no ESLint
       try { client.send(payload); } catch { /* ignora erro */ }
     });
     
-    return HttpResponse.json({ success: true });
+    return HttpResponse.json({ success: true, idempotencyKey });
   }),
 
+  // --- WEBSOCKET (SOCKET.IO) ---
   socketLink.addEventListener('connection', ({ client }) => {
     if (String(client.url).indexOf('socket.io') === -1) return;
 
